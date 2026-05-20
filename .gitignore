@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+docker/mysql-data/
+docker/wordpress-data/
+*.swp

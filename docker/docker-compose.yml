@@ -1,0 +1,48 @@
+# WordPress lab deployment — intentionally vulnerable baseline for WPScan
+# Usage: docker compose -f docker/docker-compose.yml up -d
+# Scan:  wpscan --url http://localhost:8080 --enumerate u,vp,vt
+
+services:
+  db:
+    image: mysql:5.7
+    container_name: wp-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wordpress}
+      MYSQL_USER: ${MYSQL_USER:-wpuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: wordpress:5.8.3-php8.0-apache
+    container_name: wp-site
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WORDPRESS_PORT:-8080}:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-wpuser}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+      # Lab-only weak credentials (documented in report)
+      WORDPRESS_DEBUG: "true"
+    volumes:
+      - wordpress-data:/var/www/html
+      - ./wp-content/plugins:/var/www/html/wp-content/plugins:ro
+      - ./wp-config-extra.php:/var/www/html/wp-config-extra.php:ro
+
+volumes:
+  mysql-data:
+  wordpress-data:
