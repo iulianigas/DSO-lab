@@ -1,0 +1,122 @@
+name: Build Hardened Image, Push, Rescan
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'dockerfiles/**'
+      - '.github/workflows/build-push-rescan.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_NAME: wordpress-hardened
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY_GHCR }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/{1}', secrets.DOCKERHUB_USERNAME, env.IMAGE_NAME) || '' }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push hardened image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfiles/Dockerfile.hardened
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  rescan-hardened:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start hardened stack
+        working-directory: docker
+        env:
+          HARDENED_IMAGE: ghcr.io/${{ github.repository_owner }}/wordpress-hardened:latest
+          MYSQL_ROOT_PASSWORD: SecureRoot!CI
+          MYSQL_USER: wpuser
+          MYSQL_PASSWORD: SecureWp!CI
+          WORDPRESS_PORT: 8080
+        run: |
+          docker compose -f docker-compose.hardened.yml pull wordpress || true
+          docker compose -f docker-compose.hardened.yml up -d --no-build
+
+      - name: Wait for hardened WordPress
+        run: |
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8080/ >/dev/null; then
+              echo "Hardened WordPress ready"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose -f docker/docker-compose.hardened.yml ps
+          docker compose -f docker/docker-compose.hardened.yml logs wordpress
+          exit 1
+
+      - name: Install WPScan
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby-full build-essential libcurl4-openssl-dev zlib1g-dev
+          sudo gem install wpscan
+
+      - name: Rescan after remediation
+        run: |
+          mkdir -p scans
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          wpscan --url http://localhost:8080 --enumerate u,vp,vt --format cli \
+            -o "scans/after-remediation-${STAMP}.txt" --force || true
+          wpscan --url http://localhost:8080 --enumerate u,vp,vt --format json \
+            -o "scans/after-remediation-${STAMP}.json" --force || true
+          ls -la scans/
+
+      - name: Upload post-remediation scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpscan-after-remediation
+          path: scans/
+
+      - name: Cleanup
+        if: always()
+        working-directory: docker
+        run: docker compose -f docker-compose.hardened.yml down -v || true
