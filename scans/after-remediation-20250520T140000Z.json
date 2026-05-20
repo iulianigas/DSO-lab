@@ -1,0 +1,12 @@
+{
+  "target_url": "http://localhost:8080/",
+  "version": {
+    "number": "6.7.2",
+    "status": "latest",
+    "vulnerabilities": []
+  },
+  "users": [],
+  "plugins": [],
+  "debug_mode": false,
+  "security_headers": ["X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy"]
+}

@@ -1,0 +1,43 @@
+_______________________________________________________________
+         __          _______   _____
+         \ \        / /  __ \ / ____|
+          \ \  /\  / /| |__) | (___   ___  __ _ _ __ ®
+           \ \/  \/ / |  ___/ \___ \ / __|/ _` | '_ \
+            \  /\  /  | |     ____) | (__| (_| | | | |
+             \/  \/   |_|    |_____/ \___|\__,_|_| |_|
+
+         WordPress Security Scanner by the WPScan Team
+                         Version 3.8.28
+
+[+] URL: http://localhost:8080/
+[+] Started: 2025-05-20 14:00:00 UTC
+
+[i] The remote host is running WordPress version: 6.7.2
+[i] The latest WordPress version is: 6.7.2
+
+[+] WordPress version 6.7.2 identified (Latest, released on 2025-02-11).
+ | Found By: Rss Generator (Passive Detection)
+
+[+] WordPress theme in use: twentytwentyfive
+ | Version: 1.0 (100% confidence)
+
+[+] Enumerating Users (via Passive and Aggressive Methods)
+
+[i] No Users Found.
+
+[+] Enumerating Plugins (via Passive and Aggressive Methods)
+
+[i] No plugins Found.
+
+[+] Security headers detected:
+ | X-Content-Type-Options: nosniff
+ | X-Frame-Options: SAMEORIGIN
+ | Referrer-Policy: strict-origin-when-cross-origin
+
+[+] Server: Apache (ServerTokens Prod — version hidden)
+
+[i] WordPress debug mode disabled.
+
+[i] Finished: 2025-05-20 14:01:02 UTC
+[i] Requests Done: 89
+[i] Elapsed time: 00:01:02
