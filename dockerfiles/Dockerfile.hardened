@@ -32,7 +32,7 @@ RUN a2enmod headers \
     && apache2ctl configtest
 
 # WordPress configuration hardening (official image WORDPRESS_CONFIG_EXTRA hook)
-ENV WORDPRESS_CONFIG_EXTRA="define('DISALLOW_FILE_EDIT', true); define('DISALLOW_FILE_MODS', true); define('WP_DEBUG', false); define('WP_DEBUG_DISPLAY', false);"
+ENV WORDPRESS_CONFIG_EXTRA="define('DISALLOW_FILE_EDIT', true); define('DISALLOW_FILE_MODS', true);"
 
 # Drop .htaccess exposure of sensitive files in uploads (defense in depth)
 RUN echo '<FilesMatch "\.(?i:php|phtml|phar)$">\n  Require all denied\n</FilesMatch>' \
