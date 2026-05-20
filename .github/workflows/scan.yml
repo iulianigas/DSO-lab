@@ -1,0 +1,100 @@
+name: WordPress WPScan – beware of the miss-configs!!!
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'WordPress URL to scan (default local CI stack)'
+        required: false
+        default: 'http://localhost:8080'
+      scan_label:
+        description: 'Artifact label (before / after)'
+        required: false
+        default: 'ci-scan'
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress-wpscan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker environment
+        run: |
+          docker version
+          docker compose version
+
+      - name: Start vulnerable WordPress stack (lab baseline)
+        working-directory: docker
+        run: |
+          export MYSQL_ROOT_PASSWORD=password
+          export MYSQL_USER=wpuser
+          export MYSQL_PASSWORD=wppass
+          export WORDPRESS_PORT=8080
+          docker compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml ps
+
+      - name: Wait for WordPress to be ready
+        run: |
+          echo "Waiting for WordPress to start..."
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8080/ | grep -qi "wordpress\|wp-content"; then
+              echo "WordPress is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/40..."
+            sleep 5
+          done
+          echo "WordPress did not become ready in time"
+          docker logs wp-site 2>&1 | tail -80 || true
+          exit 1
+
+      - name: Install Ruby and WPScan
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby-full build-essential libcurl4-openssl-dev zlib1g-dev
+          sudo gem install wpscan
+
+      - name: Run WPScan
+        env:
+          TARGET_URL: ${{ github.event.inputs.target_url || 'http://localhost:8080' }}
+          SCAN_LABEL: ${{ github.event.inputs.scan_label || format('scan-{0}', github.run_number) }}
+        run: |
+          mkdir -p scans
+          TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          OUT="scans/${SCAN_LABEL}-${TIMESTAMP}.txt"
+          JSON="scans/${SCAN_LABEL}-${TIMESTAMP}.json"
+          echo "Scanning ${TARGET_URL}"
+          wpscan --url "${TARGET_URL}" \
+            --enumerate u,vp,vt \
+            --plugins-detection aggressive \
+            --format cli \
+            -o "${OUT}" \
+            --force || true
+          wpscan --url "${TARGET_URL}" \
+            --enumerate u,vp,vt \
+            --format json \
+            -o "${JSON}" \
+            --force || true
+          cp "${OUT}" "scans/latest-scan.txt" 2>/dev/null || true
+          echo "--- Scan summary ---"
+          tail -n 80 "${OUT}" || true
+
+      - name: Upload WPScan artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpscan-${{ github.run_number }}
+          path: scans/
+          if-no-files-found: warn
+
+      - name: Tear down stack
+        if: always()
+        working-directory: docker
+        run: docker compose -f docker-compose.yml down -v --remove-orphans || true
