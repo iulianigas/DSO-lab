@@ -44,16 +44,25 @@ jobs:
       - name: Wait for WordPress to be ready
         run: |
           echo "Waiting for WordPress to start..."
-          for i in $(seq 1 40); do
-            if curl -sf http://localhost:8080/ | grep -qi "wordpress\|wp-content"; then
-              echo "WordPress is ready!"
-              exit 0
+          for i in $(seq 1 60); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ || echo "000")
+            # Fresh install returns 302 to wp-admin/install.php — that means Apache + WP are up
+            if [ "$CODE" = "200" ] || [ "$CODE" = "301" ] || [ "$CODE" = "302" ]; then
+              if curl -sfL http://localhost:8080/ 2>/dev/null | grep -qiE 'wordpress|wp-content|wp-admin|install'; then
+                echo "WordPress is ready (HTTP ${CODE})"
+                exit 0
+              fi
+              if curl -sfL http://localhost:8080/wp-admin/install.php 2>/dev/null | grep -qi 'wordpress'; then
+                echo "WordPress install screen ready (HTTP ${CODE})"
+                exit 0
+              fi
             fi
-            echo "Attempt $i/40..."
+            echo "Attempt $i/60 (HTTP ${CODE})..."
             sleep 5
           done
           echo "WordPress did not become ready in time"
           docker logs wp-site 2>&1 | tail -80 || true
+          docker logs wp-db 2>&1 | tail -40 || true
           exit 1
 
       - name: Install Ruby and WPScan
