@@ -1,0 +1,81 @@
+_______________________________________________________________
+         __          _______   _____
+         \ \        / /  __ \ / ____|
+          \ \  /\  / /| |__) | (___   ___  __ _ _ __ ®
+           \ \/  \/ / |  ___/ \___ \ / __|/ _` | '_ \
+            \  /\  /  | |     ____) | (__| (_| | | | |
+             \/  \/   |_|    |_____/ \___|\__,_|_| |_|
+
+         WordPress Security Scanner by the WPScan Team
+                         Version 3.8.28
+
+[i] Updating the Database ...
+[i] Update completed.
+
+[+] URL: http://localhost:8080/
+[+] Started: 2025-05-20 12:00:00 UTC
+
+[i] The remote host is running WordPress version: 5.8.3
+[i] The latest WordPress version is: 6.7.2
+
+[!] 14 vulnerabilities identified:
+
+[+] WordPress version 5.8.3 identified (Outdated, released on 2021-11-11).
+ | Found By: Rss Generator (Passive Detection)
+ |
+ | [!] Title: WP < 6.0.3 - Authenticated SQLi
+ |     Fixed in: 6.0.3
+ |     References:
+ |      - https://wpscan.com/vulnerability/abc123-sql-injection
+ |
+ | [!] Title: WP < 6.3.2 - Unauthenticated Post Author Disclosure
+ |     Fixed in: 6.3.2
+ |
+ | [!] Title: WP < 6.4.3 - Deserialization of untrusted data
+ |     Fixed in: 6.4.3
+ |
+ | [!] Title: WP 5.8-6.7 - XSS in shortcode
+ |     Fixed in: 6.7.1
+
+[+] WordPress theme in use: twentytwentyone
+ | Location: http://localhost:8080/wp-content/themes/twentytwentyone/
+ | Style URL: http://localhost:8080/wp-content/themes/twentytwentyone/style.css
+ | Version: 1.4 (80% confidence)
+ | Found By: Css Style In Homepage (Passive Detection)
+
+[+] Enumerating Users (via Passive and Aggressive Methods)
+ Brute Forcing Author IDs - Time: 00:00:02
+
+[i] User(s) Identified:
+
+[+] admin
+ | Found By: Author Sitemap (Aggressive Detection)
+ | Confirmed By: Author Id Brute Forcing - Author Pattern (Aggressive Detection)
+
+[+] Enumerating Plugins (via Passive and Aggressive Methods)
+
+[+] Checking Plugin Versions (via Passive and Aggressive Methods)
+
+[i] Plugin(s) Identified:
+
+[+] akismet
+ | Location: http://localhost:8080/wp-content/plugins/akismet/
+ | Latest Version: 5.3.3
+ | Found By: Urls In Homepage (Passive Detection)
+
+[+] hello-dolly
+ | Location: http://localhost:8080/wp-content/plugins/hello-dolly/
+
+[+] Enumerating Config Backups (via Passive and Aggressive Methods)
+
+[i] No Config Backups Found.
+
+[!] WordPress debug mode enabled (DISALLOW_FILE_EDIT not set).
+
+[i] Finished: 2025-05-20 12:02:15 UTC
+[i] Requests Done: 247
+[i] Cached Requests: 12
+[i] Data Sent: 45.2 KB
+[i] Data Received: 892.1 KB
+[i] Memory used: 198.5 MB
+[i] Elapsed time: 00:02:15

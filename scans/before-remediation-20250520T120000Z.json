@@ -1,0 +1,15 @@
+{
+  "target_url": "http://localhost:8080/",
+  "version": {
+    "number": "5.8.3",
+    "status": "outdated",
+    "vulnerabilities": [
+      {"title": "WP < 6.0.3 - Authenticated SQLi", "fixed_in": "6.0.3"},
+      {"title": "WP < 6.3.2 - Unauthenticated Post Author Disclosure", "fixed_in": "6.3.2"},
+      {"title": "WP < 6.4.3 - Deserialization of untrusted data", "fixed_in": "6.4.3"}
+    ]
+  },
+  "users": [{"username": "admin", "id": 1}],
+  "plugins": ["akismet", "hello-dolly"],
+  "debug_mode": true
+}
