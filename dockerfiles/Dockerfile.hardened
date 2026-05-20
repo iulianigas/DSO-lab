@@ -1,0 +1,49 @@
+# Hardened WordPress image — patched core, reduced attack surface, non-root runtime
+FROM wordpress:6.7.2-php8.2-apache
+
+LABEL org.opencontainers.image.title="wordpress-hardened"
+LABEL org.opencontainers.image.description="Patched and hardened WordPress for DevSecOps lab"
+
+USER root
+
+# Remove unnecessary packages and clear apt cache
+RUN apt-get update \
+    && apt-get purge -y --auto-remove \
+        wget \
+        less \
+    || true \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Apache hardening: hide version, disable directory listing, custom port for non-root
+RUN a2dismod -f autoindex status \
+    && sed -i 's/ServerTokens OS/ServerTokens Prod/' /etc/apache2/conf-available/security.conf \
+    && sed -i 's/ServerSignature On/ServerSignature Off/' /etc/apache2/conf-available/security.conf \
+    && echo "TraceEnable Off" >> /etc/apache2/conf-available/security.conf \
+    && sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
+    && sed -i 's/:80>/:8080>/' /etc/apache2/sites-available/000-default.conf
+
+# Security headers and PHP hardening snippets
+COPY dockerfiles/hardening/apache-security.conf /etc/apache2/conf-available/security-custom.conf
+COPY dockerfiles/hardening/php-hardening.ini /usr/local/etc/php/conf.d/99-hardening.ini
+RUN a2enconf security-custom
+
+# WordPress configuration hardening (official image WORDPRESS_CONFIG_EXTRA hook)
+ENV WORDPRESS_CONFIG_EXTRA="define('DISALLOW_FILE_EDIT', true); define('DISALLOW_FILE_MODS', true); define('WP_DEBUG', false); define('WP_DEBUG_DISPLAY', false);"
+
+# Drop .htaccess exposure of sensitive files in uploads (defense in depth)
+RUN echo '<FilesMatch "\.(?i:php|phtml|phar)$">\n  Require all denied\n</FilesMatch>' \
+    > /var/www/html/wp-content/uploads/.htaccess 2>/dev/null || true
+
+# Ensure writable paths owned by www-data, run Apache as non-root on 8080
+RUN chown -R www-data:www-data /var/www/html \
+    && find /var/www/html -type d -exec chmod 755 {} \; \
+    && find /var/www/html -type f -exec chmod 644 {} \;
+
+EXPOSE 8080
+
+USER www-data
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -f http://127.0.0.1:8080/ || exit 1

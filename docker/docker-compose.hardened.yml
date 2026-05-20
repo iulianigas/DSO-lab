@@ -1,0 +1,51 @@
+# Hardened WordPress — uses locally built image from dockerfiles/Dockerfile.hardened
+# Usage: docker compose -f docker/docker-compose.hardened.yml up -d
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: wp-db-hardened
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-SecureRoot!ChangeMe}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wordpress}
+      MYSQL_USER: ${MYSQL_USER:-wpuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-SecureWp!ChangeMe}
+    volumes:
+      - mysql-data-hardened:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No host port exposure — DB only reachable on internal network
+
+  wordpress:
+    image: ${HARDENED_IMAGE:-wordpress-hardened:local}
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.hardened
+    container_name: wp-site-hardened
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WORDPRESS_PORT:-8080}:8080"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-wpuser}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-SecureWp!ChangeMe}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+
+volumes:
+  mysql-data-hardened:

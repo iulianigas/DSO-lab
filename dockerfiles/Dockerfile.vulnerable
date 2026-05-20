@@ -1,0 +1,5 @@
+# Optional baseline image tag for comparison (matches compose vulnerable pin)
+FROM wordpress:5.8.3-php8.0-apache
+
+LABEL org.opencontainers.image.title="wordpress-vulnerable-lab"
+LABEL org.opencontainers.image.description="Intentionally outdated WordPress for DevSecOps lab scanning"
