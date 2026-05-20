@@ -24,10 +24,12 @@ RUN a2dismod -f autoindex status \
     && sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
     && sed -i 's/:80>/:8080>/' /etc/apache2/sites-available/000-default.conf
 
-# Security headers and PHP hardening snippets
+# Security headers and PHP hardening snippets (mod_headers required for Header directive)
 COPY dockerfiles/hardening/apache-security.conf /etc/apache2/conf-available/security-custom.conf
 COPY dockerfiles/hardening/php-hardening.ini /usr/local/etc/php/conf.d/99-hardening.ini
-RUN a2enconf security-custom
+RUN a2enmod headers \
+    && a2enconf security-custom \
+    && apache2ctl configtest
 
 # WordPress configuration hardening (official image WORDPRESS_CONFIG_EXTRA hook)
 ENV WORDPRESS_CONFIG_EXTRA="define('DISALLOW_FILE_EDIT', true); define('DISALLOW_FILE_MODS', true); define('WP_DEBUG', false); define('WP_DEBUG_DISPLAY', false);"
